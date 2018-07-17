@@ -952,12 +952,26 @@ static inline int RenderAXYZ( filter_t *p_filter,
 
 static void UpdateDefaultLiveStyles( filter_t *p_filter )
 {
-    text_style_t *p_style = p_filter->p_sys->p_default_style;
+    filter_sys_t *p_sys = p_filter->p_sys;
 
-    p_style->i_font_color = var_InheritInteger( p_filter, "freetype-color" );
+    p_sys->p_default_style->i_background_alpha = var_InheritInteger( p_filter, "freetype-background-opacity" );
+    p_sys->p_default_style->i_background_color = var_InheritInteger( p_filter, "freetype-background-color" );
 
-    p_style->i_background_alpha = var_InheritInteger( p_filter, "freetype-background-opacity" );
-    p_style->i_background_color = var_InheritInteger( p_filter, "freetype-background-color" );
+    FREENULL( p_sys->p_default_style->psz_fontname );
+    p_sys->p_default_style->psz_fontname = strdup( var_InheritString( p_filter, "freetype-font" ) );
+
+    p_sys->p_forced_style->f_font_relsize = 1.0 / var_InheritInteger( p_filter, "freetype-rel-fontsize" );;
+
+    p_sys->p_default_style->i_font_color = var_InheritInteger( p_filter, "freetype-color" );
+
+    if (var_InheritBool( p_filter, "freetype-bold" )) {
+        p_sys->p_forced_style->i_style_flags |= STYLE_BOLD;
+        p_sys->p_forced_style->i_features |= STYLE_HAS_FLAGS;
+    } else {
+        p_sys->p_forced_style->i_style_flags &= ~STYLE_BOLD;
+        p_sys->p_forced_style->i_features &= ~STYLE_HAS_FLAGS;
+    }
+    text_style_Merge( p_sys->p_default_style, p_sys->p_forced_style, true );
 }
 
 static void FillDefaultStyles( filter_t *p_filter )

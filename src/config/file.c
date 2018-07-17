@@ -522,6 +522,7 @@ error:
     return -1;
 }
 
+#undef config_AutoSaveConfigFile
 int config_AutoSaveConfigFile( vlc_object_t *p_this )
 {
     int ret = 0;

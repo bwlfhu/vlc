@@ -44,6 +44,7 @@ block_shm_Alloc
 block_Realloc
 block_TryRealloc
 config_AddIntf
+config_AutoSaveConfigFile
 config_ChainCreate
 config_ChainDestroy
 config_ChainDuplicate
@@ -128,6 +129,7 @@ vlc_http_auth_ParseAuthenticationInfoHeader
 vlc_http_auth_FormatAuthorizationHeader
 vlc_http_cookies_new
 vlc_http_cookies_destroy
+vlc_http_cookies_clear
 vlc_http_cookies_store
 vlc_http_cookies_fetch
 httpd_ClientIP

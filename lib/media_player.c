@@ -58,6 +58,10 @@ input_scrambled_changed( vlc_object_t * p_this, char const * psz_cmd,
                         vlc_value_t oldval, vlc_value_t newval,
                         void * p_userdata );
 static int
+input_recordable_changed( vlc_object_t *p_this, char const *psz_cmd,
+                          vlc_value_t oldval, vlc_value_t newval,
+                          void *p_userdata );
+static int
 input_event_changed( vlc_object_t * p_this, char const * psz_cmd,
                      vlc_value_t oldval, vlc_value_t newval,
                      void * p_userdata );
@@ -88,6 +92,9 @@ del_es_callbacks( input_thread_t *p_input_thread, libvlc_media_player_t *p_mi );
 static int
 snapshot_was_taken( vlc_object_t *p_this, char const *psz_cmd,
                     vlc_value_t oldval, vlc_value_t newval, void *p_data );
+static int
+file_recording_finished( vlc_object_t *p_this, char const *psz_cmd,
+                         vlc_value_t oldval, vlc_value_t newval, void *p_data );
 
 static void libvlc_media_player_destroy( libvlc_media_player_t *p_mi );
 
@@ -174,6 +181,8 @@ static void release_input_thread( libvlc_media_player_t *p_mi )
                      input_seekable_changed, p_mi );
     var_DelCallback( p_input_thread, "can-pause",
                     input_pausable_changed, p_mi );
+    var_DelCallback( p_input_thread, "can-record",
+                     input_recordable_changed, p_mi );    
     var_DelCallback( p_input_thread, "program-scrambled",
                     input_scrambled_changed, p_mi );
     var_DelCallback( p_input_thread, "intf-event",
@@ -284,6 +293,25 @@ input_scrambled_changed( vlc_object_t * p_this, char const * psz_cmd,
 
     event.type = libvlc_MediaPlayerScrambledChanged;
     event.u.media_player_scrambled_changed.new_scrambled = newval.b_bool;
+
+    libvlc_event_send( &p_mi->event_manager, &event );
+    return VLC_SUCCESS;
+}
+
+static int
+input_recordable_changed( vlc_object_t *p_this, char const *psz_cmd,
+                          vlc_value_t oldval, vlc_value_t newval,
+                          void *p_userdata )
+{
+    VLC_UNUSED(p_this);
+    VLC_UNUSED(psz_cmd);
+    VLC_UNUSED(oldval);
+
+    libvlc_media_player_t *p_mi = p_userdata;
+    libvlc_event_t event;
+
+    event.type = libvlc_MediaPlayerRecordableChanged;
+    event.u.media_player_recordable_changed.new_recordable = newval.b_bool;
 
     libvlc_event_send( &p_mi->event_manager, &event );
     return VLC_SUCCESS;
@@ -621,6 +649,7 @@ libvlc_media_player_new( libvlc_instance_t *instance )
     var_Create (mp, "rate", VLC_VAR_FLOAT|VLC_VAR_DOINHERIT);
     var_Create (mp, "sout", VLC_VAR_STRING);
     var_Create (mp, "demux-filter", VLC_VAR_STRING);
+    var_Create (mp, "http-cookies", VLC_VAR_ADDRESS);
 
     /* Video */
     var_Create (mp, "vout", VLC_VAR_STRING|VLC_VAR_DOINHERIT);
@@ -694,6 +723,12 @@ libvlc_media_player_new( libvlc_instance_t *instance )
     var_Create (mp, "saturation", VLC_VAR_FLOAT | VLC_VAR_DOINHERIT);
     var_Create (mp, "gamma", VLC_VAR_FLOAT | VLC_VAR_DOINHERIT);
 
+    /* SPU */
+    var_Create (mp, "freetype-font", VLC_VAR_STRING | VLC_VAR_DOINHERIT);
+    var_Create (mp, "freetype-rel-fontsize", VLC_VAR_INTEGER | VLC_VAR_DOINHERIT);
+    var_Create (mp, "freetype-color", VLC_VAR_INTEGER | VLC_VAR_DOINHERIT);
+    var_Create (mp, "freetype-bold", VLC_VAR_BOOL | VLC_VAR_DOINHERIT);
+
      /* Audio */
     var_Create (mp, "aout", VLC_VAR_STRING | VLC_VAR_DOINHERIT);
     var_Create (mp, "audio-device", VLC_VAR_STRING);
@@ -714,6 +749,9 @@ libvlc_media_player_new( libvlc_instance_t *instance )
     var_Create (mp, "amem-format", VLC_VAR_STRING | VLC_VAR_DOINHERIT);
     var_Create (mp, "amem-rate", VLC_VAR_INTEGER | VLC_VAR_DOINHERIT);
     var_Create (mp, "amem-channels", VLC_VAR_INTEGER | VLC_VAR_DOINHERIT);
+
+    var_Create (mp, "recording-finished", VLC_VAR_STRING);
+    var_AddCallback (mp, "recording-finished", file_recording_finished, mp);
 
     /* Video Title */
     var_Create (mp, "video-title-show", VLC_VAR_BOOL);
@@ -807,6 +845,7 @@ static void libvlc_media_player_destroy( libvlc_media_player_t *p_mi )
     /* Detach Callback from the main libvlc object */
     var_DelCallback( p_mi->obj.libvlc,
                      "snapshot-file", snapshot_was_taken, p_mi );
+    var_DelCallback( p_mi, "recording-finished", file_recording_finished, p_mi );    
 
     /* Detach callback from the media player / input manager object */
     var_DelCallback( p_mi, "volume", volume_changed, NULL );
@@ -985,6 +1024,12 @@ int libvlc_media_player_play( libvlc_media_player_t *p_mi )
     for( size_t i = 0; i < ARRAY_SIZE( p_mi->selected_es ); ++i )
         p_mi->selected_es[i] = ES_INIT;
 
+    if( p_mi->p_md->p_cookie_jar )
+    {
+        vlc_value_t cookies = { .p_address = p_mi->p_md->p_cookie_jar };
+        var_SetChecked( p_mi, "http-cookies", VLC_VAR_ADDRESS, cookies );
+    }
+
     media_attach_preparsed_event( p_mi->p_md );
 
     p_input_thread = input_Create( p_mi, p_mi->p_md->p_input_item, NULL,
@@ -1001,6 +1046,7 @@ int libvlc_media_player_play( libvlc_media_player_t *p_mi )
 
     var_AddCallback( p_input_thread, "can-seek", input_seekable_changed, p_mi );
     var_AddCallback( p_input_thread, "can-pause", input_pausable_changed, p_mi );
+    var_AddCallback( p_input_thread, "can-record", input_recordable_changed, p_mi );    
     var_AddCallback( p_input_thread, "program-scrambled", input_scrambled_changed, p_mi );
     var_AddCallback( p_input_thread, "intf-event", input_event_changed, p_mi );
     add_es_callbacks( p_input_thread, p_mi );
@@ -1011,6 +1057,7 @@ int libvlc_media_player_play( libvlc_media_player_t *p_mi )
         del_es_callbacks( p_input_thread, p_mi );
         var_DelCallback( p_input_thread, "intf-event", input_event_changed, p_mi );
         var_DelCallback( p_input_thread, "can-pause", input_pausable_changed, p_mi );
+        var_DelCallback( p_input_thread, "can-record", input_recordable_changed, p_mi );
         var_DelCallback( p_input_thread, "program-scrambled", input_scrambled_changed, p_mi );
         var_DelCallback( p_input_thread, "can-seek", input_seekable_changed, p_mi );
         input_Close( p_input_thread );
@@ -2078,3 +2125,80 @@ int libvlc_media_player_get_role(libvlc_media_player_t *mp)
     free(str);
     return ret;
 }
+
+bool libvlc_media_player_is_recordable( libvlc_media_player_t *p_mi )
+{
+    input_thread_t *p_input_thread;
+    bool b_can_record;
+
+    p_input_thread = libvlc_get_input_thread( p_mi );
+    if( !p_input_thread )
+        return false;
+
+    b_can_record = var_GetBool( p_input_thread, "can-record" );
+
+    vlc_object_release( p_input_thread );
+    return b_can_record;
+}
+
+bool libvlc_media_player_is_recording( libvlc_media_player_t *p_mi )
+{
+    input_thread_t *p_input_thread;
+    bool b_record;
+
+    p_input_thread = libvlc_get_input_thread( p_mi );
+    if( !p_input_thread )
+        return false;
+
+    b_record = var_GetBool( p_input_thread, "record" );
+
+    vlc_object_release( p_input_thread );
+    return b_record;
+}
+
+int libvlc_media_player_record_start( libvlc_media_player_t *p_mi, const char* psz_filename )
+{
+    input_thread_t *p_input_thread;
+
+    p_input_thread = libvlc_get_input_thread( p_mi );
+    if( !p_input_thread )
+        return -1;
+
+    var_SetString( p_input_thread, "input-record-path", psz_filename );
+    var_SetBool( p_input_thread, "record", true );
+
+    vlc_object_release( p_input_thread );
+    return 0;
+}
+
+int libvlc_media_player_record_stop( libvlc_media_player_t *p_mi )
+{
+    input_thread_t *p_input_thread;
+
+    p_input_thread = libvlc_get_input_thread( p_mi );
+    if( !p_input_thread )
+        return -1;
+
+    var_SetBool( p_input_thread, "record", false );
+
+    vlc_object_release( p_input_thread );
+    return 0;
+}
+
+static int file_recording_finished(vlc_object_t *p_this, char const *psz_cmd,
+                                   vlc_value_t oldval, vlc_value_t newval, void *p_data )
+{
+    VLC_UNUSED(p_this);
+    VLC_UNUSED(psz_cmd);
+    VLC_UNUSED(oldval);
+
+    libvlc_media_player_t *p_mi = p_data;
+    libvlc_event_t event;
+
+    event.type = libvlc_MediaPlayerRecordingFinished;
+    event.u.media_player_recording_finished.psz_filename = newval.psz_string;
+
+    libvlc_event_send(&p_mi->event_manager, &event);
+    return VLC_SUCCESS;
+}
+

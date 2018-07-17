@@ -30,6 +30,7 @@
 
 #include <vlc_common.h>
 #include <vlc_input.h>
+#include <vlc_http.h>
 
 struct libvlc_media_t
 {
@@ -48,6 +49,7 @@ struct libvlc_media_t
     libvlc_media_parsed_status_t parsed_status;
     bool is_parsed;
     bool has_asked_preparse;
+    vlc_http_cookie_jar_t *p_cookie_jar;
 };
 
 /* Media Descriptor */

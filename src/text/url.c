@@ -398,7 +398,10 @@ static bool vlc_uri_host_validate(const char *str)
 
 static bool vlc_uri_path_validate(const char *str)
 {
-    return vlc_uri_component_validate(str, "/@:");
+    /* add:by H.Kernel for url with # begin*/
+    //return vlc_uri_component_validate(str, "/@:");
+    return vlc_uri_component_validate(str, "/@:#");
+    /* add:by H.Kernel for url with # end */
 }
 
 static int vlc_UrlParseInner(vlc_url_t *restrict url, const char *str)
@@ -440,17 +443,19 @@ static int vlc_UrlParseInner(vlc_url_t *restrict url, const char *str)
         cur = next;
     }
 
+    /* add:by H.Kernel for url with # begin*/
     /* Fragment */
-    next = strchr(cur, '#');
-    if (next != NULL)
-    {
-#if 0  /* TODO */
-       *(next++) = '\0';
-       url->psz_fragment = next;
-#else
-       *next = '\0';
-#endif
-    }
+//    next = strchr(cur, '#');
+//    if (next != NULL)
+//    {
+//#if 0  /* TODO */
+//       *(next++) = '\0';
+//       url->psz_fragment = next;
+//#else
+//       *next = '\0';
+//#endif
+//    }
+    /* add:by H.Kernel for url with # end */
 
     /* Query parameters */
     next = strchr(cur, '?');

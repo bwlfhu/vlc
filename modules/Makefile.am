@@ -53,11 +53,9 @@ include video_filter/Makefile.am
 include video_splitter/Makefile.am
 include video_output/Makefile.am
 include visualization/Makefile.am
-if ENABLE_SOUT
 include access_output/Makefile.am
 include mux/Makefile.am
 include stream_out/Makefile.am
-endif
 
 BUILT_SOURCES += dummy.cpp
 

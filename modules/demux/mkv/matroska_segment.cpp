@@ -825,10 +825,7 @@ bool matroska_segment_c::Seek( demux_t &demuxer, mtime_t i_absolute_mk_date, mti
         track.i_last_dts        = VLC_TS_INVALID;
 
         bool selected;
-        if (track.p_es == NULL)
-            selected = false;
-        else
-            es_out_Control( demuxer.out, ES_OUT_GET_ES_STATE, track.p_es, &selected );
+        es_out_Control( demuxer.out, ES_OUT_GET_ES_STATE, track.p_es, &selected );
         if ( selected )
             selected_tracks.push_back( track.i_number );
     }

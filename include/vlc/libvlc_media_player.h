@@ -1413,15 +1413,18 @@ int libvlc_video_set_track( libvlc_media_player_t *p_mi, int i_track );
 LIBVLC_API
 int libvlc_video_take_snapshot( libvlc_media_player_t *p_mi, unsigned num,
                                 const char *psz_filepath, unsigned int i_width,
-                                unsigned int i_height );
+                                unsigned int i_height, bool hide);
 
 /**
  * Enable or disable deinterlace filter
  *
  * \param p_mi libvlc media player
- * \param psz_mode type of deinterlace filter, NULL to disable
+ * \param deinterlace deinterlace mode -1:auto (default), 0: disabled, 1: enabled
+ * \param psz_mode type of deinterlace filter, NULL for current/default filter
+ * \version LibVLC 4.0.0 and later
  */
 LIBVLC_API void libvlc_video_set_deinterlace( libvlc_media_player_t *p_mi,
+                                                  int deinterlace,
                                                   const char *psz_mode );
 
 /**
@@ -1566,6 +1569,32 @@ LIBVLC_API float libvlc_video_get_adjust_float( libvlc_media_player_t *p_mi,
  */
 LIBVLC_API void libvlc_video_set_adjust_float( libvlc_media_player_t *p_mi,
                                                    unsigned option, float value );
+
+enum libvlc_video_textrenderer_option_t {
+    libvlc_textrender_font = 0,
+    libvlc_textrender_fontsize,
+    libvlc_textrender_fontcolor,
+    libvlc_textrender_fontforcebold,
+};
+
+LIBVLC_API bool libvlc_video_get_textrenderer_bool( libvlc_media_player_t *p_mi,
+                                                    unsigned option );
+
+LIBVLC_API void libvlc_video_set_textrenderer_bool( libvlc_media_player_t *p_mi,
+                                                    unsigned option, bool value );
+
+LIBVLC_API int libvlc_video_get_textrenderer_int( libvlc_media_player_t *p_mi,
+                                                  unsigned option );
+
+LIBVLC_API void libvlc_video_set_textrenderer_int( libvlc_media_player_t *p_mi,
+                                                   unsigned option, int value );
+
+LIBVLC_API char *libvlc_video_get_textrenderer_string( libvlc_media_player_t *p_mi,
+                                                       unsigned option );
+
+LIBVLC_API void libvlc_video_set_textrenderer_string( libvlc_media_player_t *p_mi,
+                                                      unsigned option,
+                                                      const char *psz_text );
 
 /** @} video */
 
@@ -2081,6 +2110,120 @@ LIBVLC_API int libvlc_media_player_set_role(libvlc_media_player_t *p_mi,
                                             unsigned role);
 
 /** @} audio */
+/**
+ * Can the media player record the current media?
+ *
+ * Media must be buffering or playing before it can be recorded.
+ *
+ * The media player event manager will emit a libvlc_MediaPlayerRecordableChanged event
+ * when the recordable state changes after starting media playback. The event data will
+ * describe the new recordable state, so invocation of this API method is not strictly
+ * necessary to determine when recording can be started.
+ *
+ * A libvlc_MediaPlayerRecordableChanged event will not be emitted if the media is
+ * stopped (notified by a libvlc_MediaPlayerStoppedEvent) or finishes normally (notified
+ * by a libvlc_MediaPlayerFinished event).
+ *
+ * A calling application should therefore register an event callback for those events
+ * so that it may query the new recordable state and manage recording at the appropriate
+ * time.
+ *
+ * \param p_mi media player
+ * \return true if the media player can record, false if it can not
+ * \version LibVLC 2.1.0 or later
+ */
+LIBVLC_API bool libvlc_media_player_is_recordable( libvlc_media_player_t *p_mi );
+
+/**
+ * Is the current media being recorded?
+ *
+ * \param p_mi media player
+ * \return true if recording, false if not
+ * \version LibVLC 2.1.0 or later
+ */
+LIBVLC_API bool libvlc_media_player_is_recording( libvlc_media_player_t *p_mi );
+
+/**
+ * Start recording the current media.
+ *
+ * Media must be buffering or playing before it can be recorded. A calling application
+ * can begin recording immediately on receipt of a libvlc_MediaPlayerRecordableChanged
+ * event sent via the media player event manager (if recording is possible for the
+ * currently playing media), and any time thereafter until the media stops.
+ *
+ * Media will be saved to the file path denoted by the psz_filename parameter if it is
+ * supplied. Any such supplied filename should not include a file extension as the
+ * correct file extension will automatically be appended when the file is created. This
+ * filename may denote a full path name, but each directory in the path must already
+ * exist or recording will silently fail. If the calling application chooses to specify
+ * the filename then it is the responsibility of that application to take account of
+ * this and itself make sure any needed directories are created.
+ *
+ * Alternatively, a calling application need not supply a filename and so instead let
+ * vlc automatically generate a unique filename. This will cause vlc to create a new
+ * file in the appropriate media directory for the user - for example "~/Videos". The
+ * actual filename used will be sent in an event when the recording is complete.
+ *
+ * When recording has finished and the new file has been completely saved, a
+ * libvlc_MediaPlayerRecordingFinished event will be sent via the media player event
+ * manager. The event data will contain the filename of the newly recorded file - this
+ * will either be the filename as specified by the calling application or a filename
+ * generated by vlc if the application did not supply a filename. In either case, this
+ * filename will include the automatically appended file extension.
+ *
+ * The saved media file will not be immediately available or visible until recording
+ * has completely finished and the libvlc_MediaPlayerRecordingFinished event has been
+ * received, or the media has stopped or finished normally.
+ *
+ * Recording can be stopped and started on-the-fly once the recordable state is set;
+ * each time recording is stopped and restarted a new file will be created so a calling
+ * application should take care to provide unique filenames, or defer to vlc to create
+ * unique filenames.
+ *
+ * Recording will be stopped when the media stops playing, and must be explicitly
+ * started again to restart recording, i.e. the recording state is not automatically
+ * preserved when playing media subsequently.
+ *
+ * Media player functionailty such as next/previous chapter, set time or position and
+ * so on are ineffective when recording is enabled. However, pausing the media is
+ * possible and will pause the recording; unpausing the media will resume playback and
+ * recording.
+ *
+ * Recording of the primary media or sub-items is possible.
+ *
+ * \param p_mi media player
+ * \param psz_filename name of the file to save the media to, not including any file extension,
+ *                     or NULL if vlc should generate the filename automatically
+ * \return 0 if recording was started, -1 on error
+ * \version LibVLC 2.1.0 or later
+ */
+LIBVLC_API int libvlc_media_player_record_start( libvlc_media_player_t *p_mi, const char *psz_filename );
+
+/**
+ * Stop recording the current media.
+ *
+ * This method requests that the recording stop, and will return immediately. Recording
+ * will not stop immediately.
+ *
+ * When the recording actually stops some short time later and the new file has
+ * finished being written, a libvlc_MediaPlayerRecordingFinished event will be sent via
+ * the media player event manager. The newly recorded file will not be visible or
+ * available until after this event has been sent.
+ *
+ * The event data will contain the full name of the file that was created. The filename
+ * will either be that as was specified by the calling application on invoking
+ * libvlc_media_player_record_start(), or the filename that vlc automatically generated
+ * if the calling application did not supply its own filename. In either case the
+ * filename will contain the automatically appended file extension.
+ *
+ * There is no need to invoke this method to stop the recording if the media is stopped
+ * or finishes playing normally.
+ *
+ * \param p_mi media player
+ * \return 0 if recording was stopped, -1 on error
+ * \version LibVLC 2.1.0 or later
+ */
+LIBVLC_API int libvlc_media_player_record_stop( libvlc_media_player_t *p_mi );
 
 /** @} media_player */
 

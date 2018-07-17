@@ -1315,8 +1315,7 @@ static void httpd_ClientRecv(httpd_client_t *cl)
             cl->i_state = HTTPD_CLIENT_RECEIVE_DONE;
     } else for (;;) { /* we are reading a header -> char by char */
         if (cl->i_buffer == cl->i_buffer_size) {
-            // Allocate an extra byte for the termination null byte
-            uint8_t *newbuf = realloc(cl->p_buffer, cl->i_buffer_size + 1025);
+            uint8_t *newbuf = realloc(cl->p_buffer, cl->i_buffer_size + 1024);
             if (!newbuf) {
                 i_len = 0;
                 break;
@@ -1455,12 +1454,10 @@ static void httpd_ClientRecv(httpd_client_t *cl)
                         }
                     }
 
-                    if(cl->query.psz_url == NULL) {
-                        cl->query.psz_url = strdup(p);
-                        if ((p3 = strchr(cl->query.psz_url, '?')) ) {
-                            *p3++ = '\0';
-                            cl->query.psz_args = (uint8_t *)strdup(p3);
-                        }
+                    cl->query.psz_url = strdup(p);
+                    if ((p3 = strchr(cl->query.psz_url, '?')) ) {
+                        *p3++ = '\0';
+                        cl->query.psz_args = (uint8_t *)strdup(p3);
                     }
                     p = p2;
                 }
@@ -1900,8 +1897,7 @@ static void httpdLoop(httpd_host_t *host)
                         cl->i_buffer = 0;
                         cl->i_buffer_size = 1000;
                         free(cl->p_buffer);
-                        // Allocate an extra byte for the null terminating byte
-                        cl->p_buffer = xmalloc(cl->i_buffer_size + 1);
+                        cl->p_buffer = xmalloc(cl->i_buffer_size);
                         cl->i_state = HTTPD_CLIENT_RECEIVING;
                     } else
                         cl->i_state = HTTPD_CLIENT_DEAD;

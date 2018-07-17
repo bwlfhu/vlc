@@ -1603,7 +1603,7 @@ vlc_module_begin ()
     add_string( "snapshot-format", "png", SNAP_FORMAT_TEXT,
                    SNAP_FORMAT_LONGTEXT, false )
         change_string_list( ppsz_snap_formats, ppsz_snap_formats )
-    add_bool( "snapshot-preview", true, SNAP_PREVIEW_TEXT,
+    add_bool( "snapshot-preview", false, SNAP_PREVIEW_TEXT,
               SNAP_PREVIEW_LONGTEXT, false )
     add_bool( "snapshot-sequential", false, SNAP_SEQUENTIAL_TEXT,
               SNAP_SEQUENTIAL_LONGTEXT, false )
@@ -2656,6 +2656,7 @@ vlc_module_begin ()
     add_key( "key-viewpoint-roll-anticlock", NULL,
              VIEWPOINT_ROLL_ANTICLOCK_KEY_TEXT, VIEWPOINT_ROLL_ANTICLOCK_KEY_TEXT, true )
 
+    set_section ( N_("Zoom" ), NULL )
     add_key( "key-zoom-quarter",  KEY_ZOOM_QUARTER,
         ZOOM_QUARTER_KEY_TEXT,  NULL, false )
     add_key( "key-zoom-half",     KEY_ZOOM_HALF,

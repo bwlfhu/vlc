@@ -131,6 +131,18 @@ vlc_module_begin ()
         add_bool(   "rtsp-wmserver", false, WMSERVER_TEXT,
                     WMSERVER_LONGTEXT, true)
             change_safe()
+        /* add:by H.Kernel for not send option for rtsp server */
+        add_bool(   "rtsp-send-option", true,
+                    N_("send the option"),
+                    N_("send the option for RFC 2326 guidelines"), false)
+            change_safe()
+        /* end:by H.Kernel for not send option for rtsp server */
+        /* add:by H.Kernel for send describe direct for rtsp server */
+        add_bool(   "rtsp-no-send-option", false,
+                    N_("send the option"),
+                    N_("send the option for RFC 2326 guidelines"), true)
+            change_safe()
+        /* end:by H.Kernel forsend describe direct for rtsp server */
         add_string( "rtsp-user", NULL, USER_TEXT,
                     USER_LONGTEXT, true )
             change_safe()
@@ -605,7 +617,7 @@ static int Connect( demux_t *p_demux )
     const char *psz_pwd  = NULL;
     int  i_http_port  = 0;
     int  i_ret        = VLC_SUCCESS;
-    const int i_timeout = var_InheritInteger( p_demux, "ipv4-timeout" );
+    const int i_timeout = 15000;//var_InheritInteger( p_demux, "ipv4-timeout" );
 
     vlc_credential_init( &credential, &p_sys->url );
 
@@ -655,7 +667,14 @@ createnew:
 describe:
     authenticator.setUsernameAndPassword( psz_user, psz_pwd );
 
-    p_sys->rtsp->sendOptionsCommand( &continueAfterOPTIONS, &authenticator );
+    /* add:by H.Kernel for send describe direct for rtsp server */
+    //if(var_GetBool( p_demux, "rtsp-no-send-option" )) {
+        p_sys->rtsp->sendDescribeCommand( continueAfterDESCRIBE, &authenticator );
+    //}
+    //else {
+    //    p_sys->rtsp->sendOptionsCommand( &continueAfterOPTIONS, &authenticator );
+    //}
+    /* end:by H.Kernel for send describe direct for rtsp server */
 
     if( !wait_Live555_response( p_demux, i_timeout ) )
     {
@@ -832,7 +851,10 @@ static int SessionsSetup( demux_t *p_demux )
                         msg_Err( p_demux, "SETUP of'%s/%s' failed %s",
                                  sub->mediumName(), sub->codecName(),
                                  p_sys->env->getResultMsg() );
-                        continue;
+                        /* modify:by H.Kernel for setup fail and return error direct */
+                        //continue;
+                        return VLC_EGENERIC;
+                        /* end:by H.Kernel for setup fail and return error direct */
                     }
                     else
                     {
@@ -1273,7 +1295,7 @@ static int Play( demux_t *p_demux )
         msg_Dbg( p_demux, "We have a timeout of %d seconds", timeout );
 
         mtime_t interval = (timeout - 2) * CLOCK_FREQ;
-        vlc_timer_schedule( p_sys->timer, false, interval, interval);
+        //vlc_timer_schedule( p_sys->timer, false, interval, interval);
     }
     p_sys->i_pcr = VLC_TS_INVALID;
 
@@ -2133,9 +2155,9 @@ static void StreamRead( void *p_private, unsigned int i_size,
                     case VLC_CODEC_MPGV:
                     case VLC_CODEC_H264:
                     case VLC_CODEC_HEVC:
+                    case VLC_CODEC_VP8:
                         p_block->i_dts = VLC_TS_INVALID;
                         break;
-                    case VLC_CODEC_VP8:
                     default:
                         p_block->i_dts = VLC_TS_0 + i_pts;
                         break;
@@ -2240,6 +2262,11 @@ static void TimeoutPrevention( void *p_data )
     if( p_sys->rtsp == NULL || p_sys->ms == NULL )
         return;
 
+    /* add:by H.Kernel for not send option for rtsp server */
+    if(!var_GetBool( p_demux, "rtsp-send-option" ))
+        return;
+    /* end:by H.Kernel for not send option for rtsp server */
+    
     bool use_get_param = p_sys->b_get_param;
 
     /* Use GET_PARAMETERS if supported. wmserver dialect supports

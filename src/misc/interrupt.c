@@ -43,13 +43,26 @@
 #include "interrupt.h"
 #include "libvlc.h"
 
+#ifdef I_CAN_HAZ_TSD
 static thread_local vlc_interrupt_t *vlc_interrupt_var;
+#else
+#include <pthread.h>
+static pthread_key_t vlc_interrupt_var_key;
+static pthread_once_t vlc_interrupt_var_key_once = PTHREAD_ONCE_INIT;
+static void vlc_interrupt_var_key_create()
+{
+    pthread_key_create(&vlc_interrupt_var_key, NULL);
+}
+#endif
 
 /**
  * Initializes an interruption context.
  */
 void vlc_interrupt_init(vlc_interrupt_t *ctx)
 {
+#ifndef I_CAN_HAZ_TSD
+    pthread_once(&vlc_interrupt_var_key_once, vlc_interrupt_var_key_create);
+#endif
     vlc_mutex_init(&ctx->lock);
     ctx->interrupted = false;
     atomic_init(&ctx->killed, false);
@@ -98,9 +111,15 @@ void vlc_interrupt_raise(vlc_interrupt_t *ctx)
 
 vlc_interrupt_t *vlc_interrupt_set(vlc_interrupt_t *newctx)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *oldctx = vlc_interrupt_var;
 
     vlc_interrupt_var = newctx;
+#else
+    vlc_interrupt_t *oldctx = pthread_getspecific(vlc_interrupt_var_key);
+
+    pthread_setspecific(vlc_interrupt_var_key, newctx);
+#endif
     return oldctx;
 }
 
@@ -115,7 +134,11 @@ static void vlc_interrupt_prepare(vlc_interrupt_t *ctx,
                                   void (*cb)(void *), void *data)
 {
     assert(ctx != NULL);
+#ifdef I_CAN_HAZ_TSD
     assert(ctx == vlc_interrupt_var);
+#else
+    assert(ctx == pthread_getspecific(vlc_interrupt_var_key));
+#endif
 
     vlc_mutex_lock(&ctx->lock);
     assert(ctx->callback == NULL);
@@ -143,7 +166,11 @@ static int vlc_interrupt_finish(vlc_interrupt_t *ctx)
     int ret = 0;
 
     assert(ctx != NULL);
+#ifdef I_CAN_HAZ_TSD
     assert(ctx == vlc_interrupt_var);
+#else
+    assert(ctx == pthread_getspecific(vlc_interrupt_var_key));
+#endif
 
     /* Wait for pending callbacks to prevent access by other threads. */
     vlc_mutex_lock(&ctx->lock);
@@ -159,14 +186,22 @@ static int vlc_interrupt_finish(vlc_interrupt_t *ctx)
 
 void vlc_interrupt_register(void (*cb)(void *), void *opaque)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     if (ctx != NULL)
         vlc_interrupt_prepare(ctx, cb, opaque);
 }
 
 int vlc_interrupt_unregister(void)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     return (ctx != NULL) ? vlc_interrupt_finish(ctx) : 0;
 }
 
@@ -185,7 +220,11 @@ void vlc_interrupt_kill(vlc_interrupt_t *ctx)
 
 bool vlc_killed(void)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
 
     return (ctx != NULL) && atomic_load(&ctx->killed);
 }
@@ -197,7 +236,11 @@ static void vlc_interrupt_sem(void *opaque)
 
 int vlc_sem_wait_i11e(vlc_sem_t *sem)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     if (ctx == NULL)
         return vlc_sem_wait(sem), 0;
 
@@ -227,7 +270,11 @@ static void vlc_mwait_i11e_cleanup(void *opaque)
 
 int vlc_mwait_i11e(mtime_t deadline)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     if (ctx == NULL)
         return mwait(deadline), 0;
 
@@ -262,7 +309,11 @@ void vlc_interrupt_forward_start(vlc_interrupt_t *to, void *data[2])
 {
     data[0] = data[1] = NULL;
 
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *from = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *from = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     if (from == NULL)
         return;
 
@@ -371,7 +422,11 @@ static int vlc_poll_i11e_inner(struct pollfd *restrict fds, unsigned nfds,
 
 int vlc_poll_i11e(struct pollfd *fds, unsigned nfds, int timeout)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     if (ctx == NULL)
         return poll(fds, nfds, timeout);
 
@@ -568,7 +623,11 @@ static void vlc_poll_i11e_cleanup(void *opaque)
 
 int vlc_poll_i11e(struct pollfd *fds, unsigned nfds, int timeout)
 {
+#ifdef I_CAN_HAZ_TSD
     vlc_interrupt_t *ctx = vlc_interrupt_var;
+#else
+    vlc_interrupt_t *ctx = pthread_getspecific(vlc_interrupt_var_key);
+#endif
     if (ctx == NULL)
         return vlc_poll(fds, nfds, timeout);
 

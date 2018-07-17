@@ -144,7 +144,8 @@ void libvlc_video_set_mouse_input( libvlc_media_player_t *p_mi, unsigned on )
 int
 libvlc_video_take_snapshot( libvlc_media_player_t *p_mi, unsigned num,
                             const char *psz_filepath,
-                            unsigned int i_width, unsigned int i_height )
+                            unsigned int i_width, unsigned int i_height,
+                            bool hide )
 {
     assert( psz_filepath );
 
@@ -164,6 +165,16 @@ libvlc_video_take_snapshot( libvlc_media_player_t *p_mi, unsigned num,
     var_SetString( p_vout, "snapshot-path", psz_filepath );
     var_Create( p_vout, "snapshot-format", VLC_VAR_STRING );
     var_SetString( p_vout, "snapshot-format", "png" );
+
+    if ( !hide )
+    {
+        var_SetBool(p_vout, "snapshot-background", false);
+    }
+    else
+    {
+        var_SetBool(p_vout, "snapshot-background", true);
+    }
+
     var_TriggerCallback( p_vout, "video-snapshot" );
     vlc_object_release( p_vout );
     return 0;
@@ -663,28 +674,27 @@ end:
 }
 
 /******************************************************************************
- * libvlc_video_set_deinterlace : enable deinterlace
+ * libvlc_video_set_deinterlace : enable/disable/auto deinterlace and filter
  *****************************************************************************/
-void libvlc_video_set_deinterlace( libvlc_media_player_t *p_mi,
+void libvlc_video_set_deinterlace( libvlc_media_player_t *p_mi, int deinterlace,
                                    const char *psz_mode )
 {
-    if (psz_mode == NULL)
-        psz_mode = "";
-    if (*psz_mode
+    if (deinterlace != 0 && deinterlace != 1)
+        deinterlace = -1;
+
+    if (psz_mode
      && strcmp (psz_mode, "blend")    && strcmp (psz_mode, "bob")
      && strcmp (psz_mode, "discard")  && strcmp (psz_mode, "linear")
      && strcmp (psz_mode, "mean")     && strcmp (psz_mode, "x")
      && strcmp (psz_mode, "yadif")    && strcmp (psz_mode, "yadif2x")
-     && strcmp (psz_mode, "phosphor") && strcmp (psz_mode, "ivtc"))
+     && strcmp (psz_mode, "phosphor") && strcmp (psz_mode, "ivtc")
+     && strcmp (psz_mode, "auto"))
         return;
 
-    if (*psz_mode)
-    {
+    if (psz_mode && deinterlace != 0)
         var_SetString (p_mi, "deinterlace-mode", psz_mode);
-        var_SetInteger (p_mi, "deinterlace", 1);
-    }
-    else
-        var_SetInteger (p_mi, "deinterlace", 0);
+
+    var_SetInteger (p_mi, "deinterlace", deinterlace);
 
     size_t n;
     vout_thread_t **pp_vouts = GetVouts (p_mi, &n);
@@ -692,13 +702,10 @@ void libvlc_video_set_deinterlace( libvlc_media_player_t *p_mi,
     {
         vout_thread_t *p_vout = pp_vouts[i];
 
-        if (*psz_mode)
-        {
+        if (psz_mode && deinterlace != 0)
             var_SetString (p_vout, "deinterlace-mode", psz_mode);
-            var_SetInteger (p_vout, "deinterlace", 1);
-        }
-        else
-            var_SetInteger (p_vout, "deinterlace", 0);
+
+        var_SetInteger (p_vout, "deinterlace", deinterlace);
         vlc_object_release (p_vout);
     }
     free (pp_vouts);
@@ -812,7 +819,7 @@ static bool find_sub_source_by_name( libvlc_media_player_t *p_mi, const char *re
 }
 
 typedef const struct {
-    const char name[20];
+    const char name[25];
     unsigned type;
 } opt_t;
 
@@ -839,6 +846,7 @@ set_value( libvlc_media_player_t *p_mi, const char *restrict name,
         }
         case VLC_VAR_INTEGER:
         case VLC_VAR_FLOAT:
+        case VLC_VAR_BOOL:
         case VLC_VAR_STRING:
             if( i_expected_type != opt->type )
             {
@@ -1085,4 +1093,70 @@ float libvlc_video_get_adjust_float( libvlc_media_player_t *p_mi,
                                      unsigned option )
 {
     return get_float( p_mi, "adjust", adjust_option_bynumber(option) );
+}
+
+/* SPU HACK */
+
+static const opt_t *
+textrenderer_option_bynumber( unsigned option )
+{
+    static const opt_t optlist[] =
+    {
+    { "freetype-font",            VLC_VAR_STRING },
+    { "freetype-rel-fontsize",    VLC_VAR_INTEGER },
+    { "freetype-color",           VLC_VAR_INTEGER },
+    { "freetype-bold",            VLC_VAR_BOOL },
+    };
+    enum { num_opts = sizeof(optlist) / sizeof(*optlist) };
+
+    const opt_t *r = option < num_opts ? optlist+option : NULL;
+    if( !r )
+        libvlc_printerr( "Unknown freetype option" );
+    return r;
+}
+
+/* basic text renderer support */
+
+void libvlc_video_set_textrenderer_bool( libvlc_media_player_t *p_mi,
+                                        unsigned option, bool value )
+{
+    set_value( p_mi, "freetype", textrenderer_option_bynumber(option), VLC_VAR_BOOL,
+               &(vlc_value_t) { .b_bool = value }, false );
+}
+
+
+bool libvlc_video_get_textrenderer_bool( libvlc_media_player_t *p_mi,
+                                         unsigned option )
+{
+    return get_int( p_mi, "freetype", textrenderer_option_bynumber(option) );
+}
+
+
+void libvlc_video_set_textrenderer_int( libvlc_media_player_t *p_mi,
+                                       unsigned option, int value )
+{
+    set_value( p_mi, "freetype", textrenderer_option_bynumber(option), VLC_VAR_INTEGER,
+               &(vlc_value_t) { .i_int = value }, false );
+}
+
+
+int libvlc_video_get_textrenderer_int( libvlc_media_player_t *p_mi,
+                                      unsigned option )
+{
+    return get_int( p_mi, "freetype", textrenderer_option_bynumber(option) );
+}
+
+
+void libvlc_video_set_textrenderer_string( libvlc_media_player_t *p_mi,
+                                          unsigned option, const char *psz_value )
+{
+    set_value( p_mi, "freetype", textrenderer_option_bynumber(option), VLC_VAR_STRING,
+               &(vlc_value_t){ .psz_string = (char *)psz_value }, true );
+}
+
+
+char * libvlc_video_get_textrenderer_string( libvlc_media_player_t *p_mi,
+                                            unsigned option )
+{
+    return get_string( p_mi, "freetype", textrenderer_option_bynumber(option) );
 }
