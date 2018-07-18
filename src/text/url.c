@@ -448,12 +448,12 @@ static int vlc_UrlParseInner(vlc_url_t *restrict url, const char *str)
 //    next = strchr(cur, '#');
 //    if (next != NULL)
 //    {
-//#if 0  /* TODO */
-//       *(next++) = '\0';
-//       url->psz_fragment = next;
-//#else
-//       *next = '\0';
-//#endif
+//      #if 0  /* TODO */
+//         *(next++) = '\0';
+//         url->psz_fragment = next;
+//      #else
+//         *next = '\0';
+//      #endif
 //    }
     /* add:by H.Kernel for url with # end */
 
