@@ -252,7 +252,7 @@ char *vlc_uri2path (const char *url)
     path += 3; /* skip "://" */
 
     /* Remove request parameters and/or HTML anchor if present */
-    end = path + strcspn (path, "?#");
+    end = path + strcspn (path, "?");
     path = strndup (path, end - path);
     if (unlikely(path == NULL))
         return NULL; /* boom! */
