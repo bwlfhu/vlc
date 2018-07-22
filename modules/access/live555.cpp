@@ -371,7 +371,7 @@ static int  Open ( vlc_object_t *p_this )
 
     /* parse URL for rtsp://[user:[passwd]@]serverip:port/options */
     /* add:by H.Kernel for IVS url with # */
-    vlc_UrlParse( &p_sys->url, p_demux->psz_url );
+    vlc_UrlParse( &p_sys->url, p_demux->psz_access );
 
     if( ( p_sys->psz_pl_url = passwordLessURL( &p_sys->url ) ) == NULL )
     {
