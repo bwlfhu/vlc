@@ -3232,13 +3232,13 @@ void input_SplitMRL( const char **access, const char **demux,
 
         /* Remove HTML anchor if present (not supported).
          * The hash symbol itself should be URI-encoded. */
-        p = strchr( p, '#' );
-        if( p != NULL )
-        {
-            *(p++) = '\0';
-            *anchor = p;
-        }
-        else
+        //p = strchr( p, '#' );
+        //if( p != NULL )
+        //{
+        //    *(p++) = '\0';
+        //    *anchor = p;
+        //}
+        //else
             *anchor = "";
     }
     else

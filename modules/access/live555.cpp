@@ -309,6 +309,7 @@ static int  Open ( vlc_object_t *p_this )
     demux_t     *p_demux = (demux_t*)p_this;
     demux_sys_t *p_sys = NULL;
 
+    char *psz_url;
     int i_return;
     int i_error = VLC_EGENERIC;
 
@@ -370,8 +371,14 @@ static int  Open ( vlc_object_t *p_this )
     vlc_mutex_init(&p_sys->timeout_mutex);
 
     /* parse URL for rtsp://[user:[passwd]@]serverip:port/options */
-    /* add:by H.Kernel for IVS url with # */
-    vlc_UrlParse( &p_sys->url, p_demux->psz_access );
+    if( asprintf( &psz_url, "%s://%s", p_demux->psz_access, p_demux->psz_location ) == -1 )
+    {
+        i_error = VLC_ENOMEM;
+        goto error;
+    }
+
+    vlc_UrlParse( &p_sys->url, psz_url );
+    free( psz_url );
 
     if( ( p_sys->psz_pl_url = passwordLessURL( &p_sys->url ) ) == NULL )
     {
