@@ -110,8 +110,6 @@ struct sout_stream_sys_t
     int              i_id;
     sout_stream_id_sys_t **id;
     mtime_t     i_dts_start;
-    mtime_t     i_video_dts_start;
-    char *psz_record_file;
 };
 
 static void OutputStart( sout_stream_t *p_stream );
@@ -158,8 +156,6 @@ static int Open( vlc_object_t *p_this )
 #endif
     p_sys->b_drop = false;
     p_sys->i_dts_start = 0;
-    p_sys->i_video_dts_start = 0;
-    p_sys->psz_record_file = NULL;
     TAB_INIT( p_sys->i_id, p_sys->id );
 
     return VLC_SUCCESS;
@@ -175,19 +171,6 @@ static void Close( vlc_object_t * p_this )
 
     if( p_sys->p_out )
         sout_StreamChainDelete( p_sys->p_out, p_sys->p_out );
-    
-    if( p_sys->psz_record_file ) {
-        for( vlc_object_t *p_mp = p_stream->obj.parent; p_mp; p_mp = p_mp->obj.parent )
-        {
-            if( var_Type( p_mp, "recording-finished" ) )
-            {
-                var_SetString( p_mp, "recording-finished", p_sys->psz_record_file );
-                break;
-            }
-        }
-
-        free( p_sys->psz_record_file );
-    }
 
     TAB_CLEAN( p_sys->i_id, p_sys->id );
     free( p_sys->psz_prefix );
@@ -281,6 +264,7 @@ typedef struct
 /* Table of native codec support,
  * Do not do non native and non standard association !
  * Muxer will be probe if no entry found */
+/* modify by H.kernel for camera rtsp record
 static const muxer_properties_t p_muxers[] = {
     M( "raw", "mp3", 1,         VLC_CODEC_MPGA ),
     M( "raw", "a52", 1,         VLC_CODEC_A52 ),
@@ -303,7 +287,7 @@ static const muxer_properties_t p_muxers[] = {
     M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
                                 VLC_CODEC_SUBT ),
 
-    M( "ps", "mpg", 16/* FIXME*/,VLC_CODEC_MPGV,
+    M( "ps", "mpg", 16,         VLC_CODEC_MPGV,
                                 VLC_CODEC_MPGA, VLC_CODEC_DVD_LPCM, VLC_CODEC_A52,
                                 VLC_CODEC_DTS,
                                 VLC_CODEC_SPU ),
@@ -321,7 +305,13 @@ static const muxer_properties_t p_muxers[] = {
 
     M( "mkv", "mkv", 32,        VLC_CODEC_H264, VLC_CODEC_HEVC, VLC_CODEC_VP8, VLC_CODEC_MP4V,
                                 VLC_CODEC_A52,  VLC_CODEC_MP4A, VLC_CODEC_VORBIS, VLC_CODEC_FLAC ),
+};*/
+
+static const muxer_properties_t p_muxers[] = {
+    M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
+                                VLC_CODEC_SUBT ),
 };
+
 #undef M
 
 static int OutputNew( sout_stream_t *p_stream,
@@ -374,10 +364,7 @@ static int OutputNew( sout_stream_t *p_stream,
     }
 
     if( psz_file && psz_extension )
-    {
-        p_sys->psz_record_file = strdup( psz_file );
         var_SetString( p_stream->obj.libvlc, "record-file", psz_file );
-    }
 
     free( psz_file );
     free( psz_output );
@@ -446,10 +433,14 @@ static void OutputStart( sout_stream_t *p_stream )
      * keeps most of our stream */
     if( !psz_muxer || !psz_extension )
     {
+        /*
         static const char ppsz_muxers[][2][4] = {
             { "avi", "avi" }, { "mp4", "mp4" }, { "ogg", "ogg" },
             { "asf", "asf" }, {  "ts",  "ts" }, {  "ps", "mpg" },
             { "mkv", "mkv" },
+        */
+        static const char ppsz_muxers[][2][4] = {
+            { "mp4", "mp4" },
 #if 0
             // XXX ffmpeg sefault really easily if you try an unsupported codec
             // mov and avi at least segfault
