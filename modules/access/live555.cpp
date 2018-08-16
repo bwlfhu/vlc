@@ -1388,6 +1388,8 @@ static int Demux( demux_t *p_demux )
        during pause */
     vlc_mutex_locker locker(&p_sys->timeout_mutex);
 
+    msg_Err( p_demux, "******* live555 p_sys->i_track:[%d] begin ********",p_sys->i_track );
+
     for( i = 0; i < p_sys->i_track; i++ )
     {
         live_track_t *tk = p_sys->track[i];
@@ -1425,25 +1427,34 @@ static int Demux( demux_t *p_demux )
         }
     }
 
+    msg_Err( p_demux, "******* live555 read stream begin ********");
+
     /* First warn we want to read data */
     p_sys->event_data = 0;
     for( i = 0; i < p_sys->i_track; i++ )
     {
         live_track_t *tk = p_sys->track[i];
+        msg_Err( p_demux, "******* live555 read stream [%d] begin ********",i);
 
         if( tk->waiting == 0 )
         {
+            msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame begin ********",i);
             tk->waiting = 1;
             tk->sub->readSource()->getNextFrame( tk->p_buffer, tk->i_buffer,
                                           StreamRead, tk, StreamClose, tk );
+            msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame end ********",i);
         }
+        msg_Err( p_demux, "******* live555 read stream [%d] end ********",i);
     }
+
+    msg_Err( p_demux, "******* live555 read stream end ********");
     /* Create a task that will be called if we wait more than 300ms */
     task = p_sys->scheduler->scheduleDelayedTask( 300000, TaskInterruptData, p_demux );
 
+    msg_Err( p_demux, "******* live555 doEventLoop ********");
     /* Do the read */
     p_sys->scheduler->doEventLoop( &p_sys->event_data );
-
+    msg_Err( p_demux, "******* live555 unscheduleDelayedTask ********");
     /* remove the task */
     p_sys->scheduler->unscheduleDelayedTask( task );
 
