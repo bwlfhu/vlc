@@ -1382,6 +1382,8 @@ static int Demux( demux_t *p_demux )
     bool            b_send_pcr = true;
     int             i;
 
+    msg_Warn( p_demux, "******* live555 Demux begin ********" );
+
     /* Protect Live555 from simultaneous calls in TimeoutPrevention()
        during pause */
     vlc_mutex_locker locker(&p_sys->timeout_mutex);
@@ -1528,6 +1530,7 @@ static int Demux( demux_t *p_demux )
         msg_Warn( p_demux, "no data received in 10s, eof ?" );
         return 0;
     }
+    msg_Warn( p_demux, "******* live555 Demux end ********" );
     return p_sys->b_error ? 0 : 1;
 }
 
@@ -1959,6 +1962,8 @@ static void StreamRead( void *p_private, unsigned int i_size,
 
     //msg_Dbg( p_demux, "pts: %d", pts.tv_sec );
 
+    msg_Warn( p_demux, "******* live555 StreamRead begin ********" );
+
     int64_t i_pts = (int64_t)pts.tv_sec * INT64_C(1000000) +
         (int64_t)pts.tv_usec;
 
@@ -2190,6 +2195,8 @@ static void StreamRead( void *p_private, unsigned int i_size,
     tk->waiting = 0;
     p_demux->p_sys->b_no_data = false;
     p_demux->p_sys->i_no_data_ti = 0;
+
+    msg_Warn( p_demux, "******* live555 StreamRead end ********" );
 }
 
 /*****************************************************************************
@@ -2204,6 +2211,8 @@ static void StreamClose( void *p_private )
     p_sys->event_rtsp = 0xff;
     p_sys->event_data = 0xff;
 
+    msg_Warn( p_demux, "******* live555 StreamClose begin ********" );
+
     if( tk->p_es )
         es_out_Control( p_demux->out, ES_OUT_SET_ES_STATE, tk->p_es, false );
 
@@ -2216,6 +2225,8 @@ static void StreamClose( void *p_private )
     msg_Dbg( p_demux, "RTSP track Close, %d track remaining", nb_tracks );
     if( !nb_tracks )
         p_sys->b_error = true;
+
+    msg_Warn( p_demux, "******* live555 StreamClose end ********" );
 }
 
 
