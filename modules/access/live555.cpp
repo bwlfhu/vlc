@@ -90,7 +90,9 @@ static void Close( vlc_object_t * );
 #define FRAME_BUFFER_SIZE_LONGTEXT N_("RTSP start frame buffer size of the video " \
     "track, can be increased in case of broken pictures due " \
     "to too small buffer.")
-#define DEFAULT_FRAME_BUFFER_SIZE 250000
+//#define DEFAULT_FRAME_BUFFER_SIZE 250000
+#define DEFAULT_FRAME_BUFFER_SIZE (2*1024*1024)
+
 
 vlc_module_begin ()
     set_description( N_("RTP/RTSP/SDP demuxer (using Live555)" ) )
@@ -490,6 +492,8 @@ static void Close( vlc_object_t *p_this )
     demux_sys_t *p_sys = p_demux->p_sys;
 
     vlc_timer_destroy(p_sys->timer);
+    p_sys->event_data = 0xff;
+    p_sys->event_rtsp = 0xff;
 
     if( p_sys->rtsp && p_sys->ms ) p_sys->rtsp->sendTeardownCommand( *p_sys->ms, NULL );
     if( p_sys->ms ) Medium::close( p_sys->ms );
