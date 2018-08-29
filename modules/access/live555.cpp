@@ -1386,13 +1386,13 @@ static int Demux( demux_t *p_demux )
     bool            b_send_pcr = true;
     int             i;
 
-    msg_Err( p_demux, "******* live555 Demux begin ********" );
+    //msg_Err( p_demux, "******* live555 Demux begin ********" );
 
     /* Protect Live555 from simultaneous calls in TimeoutPrevention()
        during pause */
     vlc_mutex_locker locker(&p_sys->timeout_mutex);
 
-    msg_Err( p_demux, "******* live555 p_sys->i_track:[%d] begin ********",p_sys->i_track );
+    //msg_Err( p_demux, "******* live555 p_sys->i_track:[%d] begin ********",p_sys->i_track );
 
     for( i = 0; i < p_sys->i_track; i++ )
     {
@@ -1431,34 +1431,34 @@ static int Demux( demux_t *p_demux )
         }
     }
 
-    msg_Err( p_demux, "******* live555 read stream begin ********");
+    //msg_Err( p_demux, "******* live555 read stream begin ********");
 
     /* First warn we want to read data */
     p_sys->event_data = 0;
     for( i = 0; i < p_sys->i_track; i++ )
     {
         live_track_t *tk = p_sys->track[i];
-        msg_Err( p_demux, "******* live555 read stream [%d] begin ********",i);
+        //msg_Err( p_demux, "******* live555 read stream [%d] begin ********",i);
 
         if( tk->waiting == 0 )
         {
-            msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame begin ********",i);
+            //msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame begin ********",i);
             tk->waiting = 1;
             tk->sub->readSource()->getNextFrame( tk->p_buffer, tk->i_buffer,
                                           StreamRead, tk, StreamClose, tk );
             msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame end ********",i);
         }
-        msg_Err( p_demux, "******* live555 read stream [%d] end ********",i);
+        //msg_Err( p_demux, "******* live555 read stream [%d] end ********",i);
     }
 
-    msg_Err( p_demux, "******* live555 read stream end ********");
+    //msg_Err( p_demux, "******* live555 read stream end ********");
     /* Create a task that will be called if we wait more than 300ms */
     task = p_sys->scheduler->scheduleDelayedTask( 300000, TaskInterruptData, p_demux );
 
-    msg_Err( p_demux, "******* live555 doEventLoop ********");
+    //msg_Err( p_demux, "******* live555 doEventLoop ********");
     /* Do the read */
     p_sys->scheduler->doEventLoop( &p_sys->event_data );
-    msg_Err( p_demux, "******* live555 unscheduleDelayedTask ********");
+    //msg_Err( p_demux, "******* live555 unscheduleDelayedTask ********");
     /* remove the task */
     p_sys->scheduler->unscheduleDelayedTask( task );
 
@@ -1545,7 +1545,7 @@ static int Demux( demux_t *p_demux )
         msg_Warn( p_demux, "no data received in 10s, eof ?" );
         return 0;
     }
-    msg_Err( p_demux, "******* live555 Demux end ********" );
+    //msg_Err( p_demux, "******* live555 Demux end ********" );
     return p_sys->b_error ? 0 : 1;
 }
 
@@ -1559,7 +1559,11 @@ static int Control( demux_t *p_demux, int i_query, va_list args )
     double  *pf, f;
     bool *pb;
 
+    //msg_Err( p_demux, "******* live555 Control begin ********");
+
     vlc_mutex_locker locker(&p_sys->timeout_mutex); /* (see same in Demux) */
+
+    //msg_Err( p_demux, "******* live555 Control end ********");
 
     switch( i_query )
     {
@@ -1977,7 +1981,7 @@ static void StreamRead( void *p_private, unsigned int i_size,
 
     //msg_Dbg( p_demux, "pts: %d", pts.tv_sec );
 
-    msg_Err( p_demux, "******* live555 StreamRead begin ********" );
+    //msg_Err( p_demux, "******* live555 StreamRead begin ********" );
 
     int64_t i_pts = (int64_t)pts.tv_sec * INT64_C(1000000) +
         (int64_t)pts.tv_usec;
@@ -2211,7 +2215,7 @@ static void StreamRead( void *p_private, unsigned int i_size,
     p_demux->p_sys->b_no_data = false;
     p_demux->p_sys->i_no_data_ti = 0;
 
-    msg_Err( p_demux, "******* live555 StreamRead end ********" );
+    //msg_Err( p_demux, "******* live555 StreamRead end ********" );
 }
 
 /*****************************************************************************
@@ -2226,7 +2230,7 @@ static void StreamClose( void *p_private )
     p_sys->event_rtsp = 0xff;
     p_sys->event_data = 0xff;
 
-    msg_Err( p_demux, "******* live555 StreamClose begin ********" );
+    //msg_Err( p_demux, "******* live555 StreamClose begin ********" );
 
     if( tk->p_es )
         es_out_Control( p_demux->out, ES_OUT_SET_ES_STATE, tk->p_es, false );
@@ -2241,7 +2245,7 @@ static void StreamClose( void *p_private )
     if( !nb_tracks )
         p_sys->b_error = true;
 
-    msg_Err( p_demux, "******* live555 StreamClose end ********" );
+    //msg_Err( p_demux, "******* live555 StreamClose end ********" );
 }
 
 
@@ -2254,6 +2258,8 @@ static void TaskInterruptRTSP( void *p_private )
 
     /* Avoid lock */
     p_demux->p_sys->event_rtsp = 0xff;
+
+    //msg_Err( p_demux, "******* live555 TaskInterruptRTSP ********");
 }
 
 static void TaskInterruptData( void *p_private )
@@ -2264,6 +2270,8 @@ static void TaskInterruptData( void *p_private )
 
     /* Avoid lock */
     p_demux->p_sys->event_data = 0xff;
+
+    //msg_Err( p_demux, "******* live555 TaskInterruptData after 300ms ********");
 }
 
 /*****************************************************************************
@@ -2274,6 +2282,8 @@ static void TimeoutPrevention( void *p_data )
     demux_t *p_demux = (demux_t *) p_data;
     demux_sys_t *p_sys = p_demux->p_sys;
     char *bye = NULL;
+
+    //msg_Err( p_demux, "******* live555 TimeoutPrevention ********");
 
     /* Protect Live555 from us calling their functions simultaneously
         with Demux() or Control() */

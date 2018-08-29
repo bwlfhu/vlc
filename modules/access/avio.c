@@ -61,6 +61,8 @@ static int UrlInterruptCallback(void *access)
      * same thread that invokes libavformat. Currently libavformat does not
      * create internal threads at all. This is not proper event handling in any
      * case; libavformat needs fixing. */
+
+    msg_Err((stream_t *)access, "avio interrupt callback.");
     (void) access;
     return vlc_killed();
 }
