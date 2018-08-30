@@ -158,6 +158,8 @@ static int Open( vlc_object_t *p_this )
     p_sys->i_dts_start = 0;
     TAB_INIT( p_sys->i_id, p_sys->id );
 
+    msg_Warn(p_this, "*********record open ************");
+
     return VLC_SUCCESS;
 }
 
@@ -175,6 +177,8 @@ static void Close( vlc_object_t * p_this )
     TAB_CLEAN( p_sys->i_id, p_sys->id );
     free( p_sys->psz_prefix );
     free( p_sys );
+
+    msg_Warn(p_this, "*********record close ************");
 }
 
 /*****************************************************************************
@@ -327,6 +331,8 @@ static int OutputNew( sout_stream_t *p_stream,
     {
         goto error;
     }
+
+    msg_Warn(p_stream, "*********record OutputNew:[%s] ************",psz_tmp);
 
     psz_file = config_StringEscape( psz_tmp );
     if( !psz_file )
