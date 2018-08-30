@@ -158,7 +158,7 @@ static int Open( vlc_object_t *p_this )
     p_sys->i_dts_start = 0;
     TAB_INIT( p_sys->i_id, p_sys->id );
 
-    msg_Err(p_this, "*********record open ************");
+    //msg_Err(p_this, "*********record open ************");
 
     return VLC_SUCCESS;
 }
@@ -178,7 +178,7 @@ static void Close( vlc_object_t * p_this )
     free( p_sys->psz_prefix );
     free( p_sys );
 
-    msg_Err(p_this, "*********record close ************");
+    //msg_Err(p_this, "*********record close ************");
 }
 
 /*****************************************************************************
@@ -312,7 +312,8 @@ static const muxer_properties_t p_muxers[] = {
 };*/
 
 static const muxer_properties_t p_muxers[] = {
-    M( "mp4", "mp4", INT_MAX,   VLC_CODEC_H264, VLC_CODEC_HEVC ),
+    M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
+                                VLC_CODEC_SUBT ),
 };
 
 #undef M
@@ -331,7 +332,7 @@ static int OutputNew( sout_stream_t *p_stream,
         goto error;
     }
 
-    msg_Err(p_stream, "*********record OutputNew:[%s] ************",psz_tmp);
+    //msg_Err(p_stream, "*********record OutputNew:[%s] ************",psz_tmp);
 
     psz_file = config_StringEscape( psz_tmp );
     if( !psz_file )
@@ -388,7 +389,7 @@ static void OutputStart( sout_stream_t *p_stream )
 {
     sout_stream_sys_t *p_sys = p_stream->p_sys;
 
-    msg_Err(p_stream, "*********record OutputStart ************");
+    //msg_Err(p_stream, "*********record OutputStart ************");
 
     /* */
     if( p_sys->b_drop )
