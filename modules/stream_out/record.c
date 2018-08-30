@@ -456,8 +456,12 @@ static void OutputStart( sout_stream_t *p_stream )
             { "asf", "asf" }, {  "ts",  "ts" }, {  "ps", "mpg" },
             { "mkv", "mkv" },
         */
-        static const char ppsz_muxers[][2][4] = {
+        /*static const char ppsz_muxers[][2][4] = {
             { "mp4", "mp4" },
+        */
+
+        static const char ppsz_muxers[][2][4] = {
+            {  "ts",  "ts" },
 #if 0
             // XXX ffmpeg sefault really easily if you try an unsupported codec
             // mov and avi at least segfault
