@@ -1728,9 +1728,10 @@ bo_t *mp4mux_GetFtyp(vlc_fourcc_t major, uint32_t minor, vlc_fourcc_t extra[], s
 
 bool mp4mux_CanMux(vlc_object_t *p_obj, const es_format_t *p_fmt)
 {
-
-    msg_Err(p_obj, "************record mp4mux_CanMux codec %4.4s in mp4****************",
+    if(p_obj) {
+        msg_Err(p_obj, "************record mp4mux_CanMux codec %4.4s in mp4****************",
                  (char*)&p_fmt->i_codec);
+    }
     switch(p_fmt->i_codec)
     {
     case VLC_CODEC_A52:
