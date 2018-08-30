@@ -257,7 +257,7 @@ static int Open(vlc_object_t *p_this)
      * Quicktime actually doesn't like the 64 bits extensions !!! */
     p_sys->b_64_ext = false;
 
-    msg_Warn(p_this, "*********record open mp4 module ************");
+    msg_Err(p_this, "*********record open mp4 module ************");
 
     return VLC_SUCCESS;
 }
@@ -271,12 +271,12 @@ static void Close(vlc_object_t *p_this)
     sout_mux_sys_t  *p_sys = p_mux->p_sys;
 
     msg_Dbg(p_mux, "Close");
-    msg_Warn(p_this, "*********record close mp4 module ************");
+    msg_Err(p_this, "*********record close mp4 module ************");
 
     /* Update mdat size */
     bo_t bo;
     if (!bo_init(&bo, 16)) {
-        msg_Warn(p_this, "*********record close bo_init fail ************");
+        msg_Err(p_this, "*********record close bo_init fail ************");
         goto cleanup;
     }
     if (p_sys->i_pos - p_sys->i_mdat_pos >= (((uint64_t)1)<<32)) {
@@ -298,7 +298,7 @@ static void Close(vlc_object_t *p_this)
     const bool b_stco64 = (p_sys->i_pos >= (((uint64_t)0x1) << 32));
     uint64_t i_moov_pos = p_sys->i_pos;
     bo_t *moov = BuildMoov(p_mux);
-    msg_Warn(p_this, "*********record close BuildMoov ************");
+    msg_Err(p_this, "*********record close BuildMoov ************");
 
     /* Check we need to create "fast start" files */
     p_sys->b_fast_start = var_GetBool(p_this, SOUT_CFG_PREFIX "faststart");
@@ -359,11 +359,11 @@ static void Close(vlc_object_t *p_this)
     /* Write MOOV header */
     sout_AccessOutSeek(p_mux->p_access, i_moov_pos);
     if (moov != NULL) {
-        msg_Warn(p_this, "*********record close box_send ************");
+        msg_Err(p_this, "*********record close box_send ************");
         box_send(p_mux, moov);
     }
     else {
-        msg_Warn(p_this, "*********record close box_send fail ************");
+        msg_Err(p_this, "*********record close box_send fail ************");
     }
 
 cleanup:
@@ -376,7 +376,7 @@ cleanup:
     TAB_CLEAN(p_sys->i_nb_streams, p_sys->pp_streams);
     free(p_sys);
 
-    msg_Warn(p_this, "*********record close mp4 module end ************");
+    msg_Err(p_this, "*********record close mp4 module end ************");
 }
 
 /*****************************************************************************

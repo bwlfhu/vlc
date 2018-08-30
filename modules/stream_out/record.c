@@ -158,7 +158,7 @@ static int Open( vlc_object_t *p_this )
     p_sys->i_dts_start = 0;
     TAB_INIT( p_sys->i_id, p_sys->id );
 
-    msg_Warn(p_this, "*********record open ************");
+    msg_Err(p_this, "*********record open ************");
 
     return VLC_SUCCESS;
 }
@@ -178,7 +178,7 @@ static void Close( vlc_object_t * p_this )
     free( p_sys->psz_prefix );
     free( p_sys );
 
-    msg_Warn(p_this, "*********record close ************");
+    msg_Err(p_this, "*********record close ************");
 }
 
 /*****************************************************************************

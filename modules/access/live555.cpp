@@ -1446,7 +1446,7 @@ static int Demux( demux_t *p_demux )
             tk->waiting = 1;
             tk->sub->readSource()->getNextFrame( tk->p_buffer, tk->i_buffer,
                                           StreamRead, tk, StreamClose, tk );
-            msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame end ********",i);
+            //msg_Err( p_demux, "******* live555 read stream [%d] getNextFrame end ********",i);
         }
         //msg_Err( p_demux, "******* live555 read stream [%d] end ********",i);
     }
