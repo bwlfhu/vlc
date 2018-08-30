@@ -311,10 +311,19 @@ static const muxer_properties_t p_muxers[] = {
                                 VLC_CODEC_A52,  VLC_CODEC_MP4A, VLC_CODEC_VORBIS, VLC_CODEC_FLAC ),
 };*/
 
-static const muxer_properties_t p_muxers[] = {
+/*static const muxer_properties_t p_muxers[] = {
     M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
                                 VLC_CODEC_SUBT ),
+};*/
+
+static const muxer_properties_t p_muxers[] = {
+    M( "ts", "ts", 8000,        VLC_CODEC_MPGV,
+                                VLC_CODEC_H264, VLC_CODEC_HEVC,
+                                VLC_CODEC_MPGA, VLC_CODEC_DVD_LPCM, VLC_CODEC_A52,
+                                VLC_CODEC_DTS,  VLC_CODEC_MP4A,
+                                VLC_CODEC_DVBS, VLC_CODEC_TELETEXT ),
 };
+
 
 #undef M
 
