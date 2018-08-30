@@ -315,7 +315,12 @@ static const muxer_properties_t p_muxers[] = {
     M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
                                 VLC_CODEC_SUBT ),
 };*/
-
+#if defined (__ANDROID__)
+static const muxer_properties_t p_muxers[] = {
+    M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
+                                VLC_CODEC_SUBT ),
+};
+#else
 static const muxer_properties_t p_muxers[] = {
     M( "ts", "ts", 8000,        VLC_CODEC_MPGV,
                                 VLC_CODEC_H264, VLC_CODEC_HEVC,
@@ -323,7 +328,7 @@ static const muxer_properties_t p_muxers[] = {
                                 VLC_CODEC_DTS,  VLC_CODEC_MP4A,
                                 VLC_CODEC_DVBS, VLC_CODEC_TELETEXT ),
 };
-
+#endif
 
 #undef M
 
@@ -456,12 +461,13 @@ static void OutputStart( sout_stream_t *p_stream )
             { "asf", "asf" }, {  "ts",  "ts" }, {  "ps", "mpg" },
             { "mkv", "mkv" },
         */
-        /*static const char ppsz_muxers[][2][4] = {
-            { "mp4", "mp4" },
-        */
-
+#if defined (__ANDROID__)
         static const char ppsz_muxers[][2][4] = {
             {  "ts",  "ts" },
+#else
+        static const char ppsz_muxers[][2][4] = {
+            { "mp4", "mp4" },
+#endif
 #if 0
             // XXX ffmpeg sefault really easily if you try an unsupported codec
             // mov and avi at least segfault
