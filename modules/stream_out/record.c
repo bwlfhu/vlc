@@ -338,8 +338,9 @@ static const muxer_properties_t p_muxers[] = {
     M( "mp4", "mp4", INT_MAX,   VLC_CODEC_MP4A, VLC_CODEC_H264, VLC_CODEC_MP4V, VLC_CODEC_HEVC,
                                 VLC_CODEC_SUBT ),
 };
-*/
+
 #endif
+*/
 
 #undef M
 
