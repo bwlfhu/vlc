@@ -481,7 +481,7 @@ static void OutputStart( sout_stream_t *p_stream )
             { "mp4", "mp4" },
 #endif
 */
-        static const char ppsz_muxers[][2][4] = {
+        static const char ppsz_muxers[][20][4] = {
             { "avformat{mux=mov}", "mov" },
 #if 0
             // XXX ffmpeg sefault really easily if you try an unsupported codec
