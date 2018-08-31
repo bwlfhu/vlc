@@ -882,7 +882,7 @@ static bo_t *GetSounBox(vlc_object_t *p_obj, mp4mux_trackinfo_t *p_track, bool b
     bo_add_16be(soun, 1);         // data-reference-index
 
     /* SoundDescription */
-    if (b_mov && codec == VLC_CODEC_MP4A)
+    if (b_mov && ((codec == VLC_CODEC_MP4A) || (codec == VLC_CODEC_ALAW)))
         bo_add_16be(soun, 1);     // version 1;
     else
         bo_add_16be(soun, 0);     // version 0;
@@ -891,7 +891,10 @@ static bo_t *GetSounBox(vlc_object_t *p_obj, mp4mux_trackinfo_t *p_track, bool b
     // channel-count
     bo_add_16be(soun, p_track->fmt.audio.i_channels);
     // sample size
-    bo_add_16be(soun, p_track->fmt.audio.i_bitspersample ?
+    if(b_mov && codec == VLC_CODEC_ALAW)
+        bo_add_16be(soun, 16);
+    else
+        bo_add_16be(soun, p_track->fmt.audio.i_bitspersample ?
                  p_track->fmt.audio.i_bitspersample : 16);
     bo_add_16be(soun, -2);        // compression id
     bo_add_16be(soun, 0);         // packet size (0)
@@ -904,6 +907,14 @@ static bo_t *GetSounBox(vlc_object_t *p_obj, mp4mux_trackinfo_t *p_track, bool b
         bo_add_32be(soun, p_track->fmt.audio.i_frame_length);
         bo_add_32be(soun, 1536); /* bytes per packet */
         bo_add_32be(soun, 2);    /* bytes per frame */
+        /* bytes per sample */
+        bo_add_32be(soun, 2 /*p_fmt->audio.i_bitspersample/8 */);
+    }
+    else if (b_mov && p_track->fmt.i_codec == VLC_CODEC_ALAW) {
+        /* samples per packet */
+        bo_add_32be(soun, 0x400);
+        bo_add_32be(soun, 0); /* bytes per packet */
+        bo_add_32be(soun, 0); /* bytes per frame */
         /* bytes per sample */
         bo_add_32be(soun, 2 /*p_fmt->audio.i_bitspersample/8 */);
     }
@@ -922,6 +933,21 @@ static bo_t *GetSounBox(vlc_object_t *p_obj, mp4mux_trackinfo_t *p_track, bool b
             box = GetDec3Tag(&p_track->fmt, p_track->a52_frame);
         else if (codec == VLC_CODEC_WMAP)
             box = GetWaveFormatExTag(&p_track->fmt, "wfex");
+        else if(codec == VLC_CODEC_ALAW)
+        {
+            /* handler reference */
+            box = box_full_new("chan", 0, 0);
+            if(!box)
+            {
+                bo_free(box);
+            }
+            bo_add_32be(box, 0x100);
+            // reserved
+            bo_add_32be(box, 0x4);
+            // reserved
+            bo_add_32be(box, 0);
+            // reserved
+        }
         else
             box = GetESDS(p_track);
 
@@ -1378,7 +1404,7 @@ bo_t * mp4mux_GetMoovBox(vlc_object_t *p_obj, mp4mux_trackinfo_t **pp_tracks, un
         bo_t *tkhd;
         if (!b_64_ext) {
             if (b_mov)
-                tkhd = box_full_new("tkhd", 0, 0x0f);
+                tkhd = box_full_new("tkhd", 0, 0x03);
             else
                 tkhd = box_full_new("tkhd", 0, 1);
             if(!tkhd)
@@ -1393,7 +1419,7 @@ bo_t * mp4mux_GetMoovBox(vlc_object_t *p_obj, mp4mux_trackinfo_t **pp_tracks, un
             bo_add_32be(tkhd, i_stream_duration); // duration
         } else {
             if (b_mov)
-                tkhd = box_full_new("tkhd", 1, 0x0f);
+                tkhd = box_full_new("tkhd", 1, 0x03);
             else
                 tkhd = box_full_new("tkhd", 1, 1);
             if(!tkhd)
@@ -1605,6 +1631,25 @@ bo_t * mp4mux_GetMoovBox(vlc_object_t *p_obj, mp4mux_trackinfo_t **pp_tracks, un
                 }
                 else bo_free(gmin);
             }
+        }
+
+        if(b_mov){
+            /* handler reference */
+            bo_t *hdlr1 = box_full_new("hdlr", 0, 0);
+            if(!hdlr1) {
+                bo_free(mdia);
+                bo_free(trak);
+                continue;
+            }
+            bo_add_fourcc(hdlr1, "dhlr");
+            // media handler
+            bo_add_fourcc(hdlr1, "url ");
+            bo_add_32be(hdlr1, 0);         // reserved
+            bo_add_32be(hdlr1, 0);         // reserved
+            bo_add_32be(hdlr1, 0);         // reserved
+            bo_add_8(hdlr1, 11);   /* Pascal string for .mov */
+            bo_add_mem(hdlr1, 11, (uint8_t*)"DataHandler");
+            box_gather(minf, hdlr1);
         }
 
         /* dinf */
