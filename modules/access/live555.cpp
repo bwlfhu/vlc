@@ -622,7 +622,8 @@ static int Connect( demux_t *p_demux )
     const char *psz_pwd  = NULL;
     int  i_http_port  = 0;
     int  i_ret        = VLC_SUCCESS;
-    const int i_timeout = 15000;//var_InheritInteger( p_demux, "ipv4-timeout" );
+    //const int i_timeout = 15000;//var_InheritInteger( p_demux, "ipv4-timeout" );
+	const int i_timeout = var_InheritInteger( p_demux, "ipv4-timeout" );
 
     vlc_credential_init( &credential, &p_sys->url );
 
@@ -844,7 +845,7 @@ static int SessionsSetup( demux_t *p_demux )
                 p_sys->rtsp->sendSetupCommand( *sub, default_live555_callback, False,
                                                toBool( b_rtsp_tcp ),
                                                toBool( p_sys->b_force_mcast && !b_rtsp_tcp ) );
-                if( !wait_Live555_response( p_demux ) )
+                if( !wait_Live555_response( p_demux, 3000 ) )
                 {
                     /* if we get an unsupported transport error, toggle TCP
                      * use and try again */
