@@ -623,7 +623,7 @@ static int Connect( demux_t *p_demux )
     int  i_http_port  = 0;
     int  i_ret        = VLC_SUCCESS;
     //const int i_timeout = 15000;//var_InheritInteger( p_demux, "ipv4-timeout" );
-	const int i_timeout = var_InheritInteger( p_demux, "ipv4-timeout" );
+	const int i_timeout = var_InheritInteger(p_demux, "ipv4-timeout");
 
     vlc_credential_init( &credential, &p_sys->url );
 
